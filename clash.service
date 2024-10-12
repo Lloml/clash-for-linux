@@ -1,0 +1,12 @@
+[Unit]
+Description = open clash
+After = network.target syslog.target
+Wants = network.target
+
+[Service]
+Type = simple
+ExecStart =/bin/bash /home/lloml/clash-for-linux/start.sh
+Restart=on-failure
+
+[Install]
+WantedBy = multi-user.target

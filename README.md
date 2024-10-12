@@ -40,8 +40,6 @@ $ cd clash-for-linux
 $ vim .env
 ```
 
-> **注意：** `.env` 文件中的变量 `CLASH_SECRET` 为自定义 Clash Secret，值为空时，脚本将自动生成随机字符串。
-
 <br>
 
 ## 启动程序
