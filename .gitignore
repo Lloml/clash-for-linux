@@ -1,5 +1,6 @@
 temp/
 conf/
+log/
 .env
 conf/config.yaml
 conf/cache.db

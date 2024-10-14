@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # 加载系统函数库(Only for RHEL Linux)
 # [ -f /etc/init.d/functions ] && source /etc/init.d/functions
@@ -7,6 +8,19 @@
 
 # 获取脚本工作目录绝对路径
 export Server_Dir=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+
+
+# 检查.env文件是否存在
+ENV_FILE=$Server_Dir/.env
+if [ ! -f "$ENV_FILE" ]; then
+  # 如果不存在，创建并写入内容
+  echo "# Clash 订阅地址" > "$ENV_FILE"
+  echo "export CLASH_URL=''" >> "$ENV_FILE"
+  echo "export CLASH_SECRET=''" >> "$ENV_FILE"
+  echo ".env 文件已创建并写入内容。"
+fi
+
+
 
 # 加载.env变量文件
 source $Server_Dir/.env
@@ -21,8 +35,16 @@ chmod +x $Server_Dir/tools/subconverter/subconverter
 #################### 变量设置 ####################
 
 Conf_Dir="$Server_Dir/conf"
-Temp_Dir="$Server_Dir/temp"
+Templete_Dir="$Server_Dir/templete"
+Temp_Dir="/tmp/clash-config"
 Log_Dir="$Server_Dir/logs"
+
+# 检查文件夹是否存在
+if [ ! -d "$Temp_Dir" ]; then
+  # 如果文件夹不存在，创建文件夹
+  mkdir -p "$Temp_Dir"
+  echo "文件夹 $Temp_Dir 已创建。"
+fi
 
 # 将 CLASH_URL 变量的值赋给 URL 变量，并检查 CLASH_URL 是否为空
 URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
@@ -131,17 +153,19 @@ fi
 sed -n '/^proxies:/,$p' $Temp_Dir/clash_config.yaml > $Temp_Dir/proxy.txt
 
 # 合并形成新的config.yaml
-cat $Temp_Dir/templete_config.yaml > $Temp_Dir/config.yaml
+cat $Templete_Dir/templete_config.yaml > $Temp_Dir/config.yaml
 cat $Temp_Dir/proxy.txt >> $Temp_Dir/config.yaml
-\cp $Temp_Dir/config.yaml $Conf_Dir/
+cp $Temp_Dir/config.yaml $Conf_Dir/
+
+echo "$Temp_Dir/config.yaml $Conf_Dir/"
 
 # Configure Clash Dashboard
 Work_Dir=$(cd $(dirname $0); pwd)
 Dashboard_Dir="${Work_Dir}/dashboard/public"
 sed -ri "s@^# external-ui:.*@external-ui: ${Dashboard_Dir}@g" $Conf_Dir/config.yaml
-if [ -z "$Secret" ]; then
+if [ -z "$CLASH_SECRET" ]; then
     sed -r -i '/^secret: /s@.*@@' $Conf_Dir/config.yaml
 else
-    sed -r -i '/^secret: /s@(secret: ).*@\1'${Secret}'@g' $Conf_Dir/config.yaml
+    sed -r -i '/^secret: /s@(secret: ).*@\1'${CLASH_SECRET}'@g' $Conf_Dir/config.yaml
 fi
 systemctl restart clash.service
